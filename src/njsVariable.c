@@ -529,6 +529,49 @@ bool njsVariable_getScalarValue(njsVariable *var, njsConnection *conn,
             NJS_CHECK_NAPI(env, napi_create_double(env, data->value.asDouble,
                     value))
             break;
+        case DPI_NATIVE_TYPE_TIMESTAMP:
+            {
+                char *dateString;
+               
+                if (var->dbTypeNum == DPI_ORACLE_TYPE_DATE)
+                {
+                    dateString = malloc(19);
+                    sprintf(dateString, "%04hu-%02hu-%02huT%02hu:%02hu:%02hu",
+                            data->value.asTimestamp.year,
+                            data->value.asTimestamp.month,
+                            data->value.asTimestamp.day,
+                            data->value.asTimestamp.hour,
+                            data->value.asTimestamp.minute,
+                            data->value.asTimestamp.second);
+                }
+                else if (var->dbTypeNum == DPI_ORACLE_TYPE_TIMESTAMP)
+                {
+                    dateString = malloc(29);
+                    sprintf(dateString, "%04hu-%02hu-%02huT%02hu:%02hu:%02hu.%u",
+                                                               data->value.asTimestamp.year,
+                                                               data->value.asTimestamp.month,
+                                                               data->value.asTimestamp.day,
+                                                               data->value.asTimestamp.hour,
+                                                               data->value.asTimestamp.minute,
+                                                               data->value.asTimestamp.second,
+                                                               data->value.asTimestamp.fsecond);
+                }else{
+                    dateString = malloc(100);
+                    sprintf(dateString, "%04hu-%02hu-%02huT%02hu:%02hu:%02hu.%u-%02hu:%02hu",
+                            data->value.asTimestamp.year,
+                            data->value.asTimestamp.month,
+                            data->value.asTimestamp.day,
+                            data->value.asTimestamp.hour,
+                            data->value.asTimestamp.minute,
+                            data->value.asTimestamp.second,
+                            data->value.asTimestamp.fsecond,
+                            data->value.asTimestamp.tzHourOffset,
+                            data->value.asTimestamp.tzMinuteOffset);
+                }
+                NJS_CHECK_NAPI(env, napi_create_string_utf8(env, dateString, strlen(dateString), value));
+                free(dateString);
+            }
+            break;
         case DPI_NATIVE_TYPE_BYTES:
             if (data->value.asBytes.length > var->maxSize)
                 return njsBaton_setError(baton, errInsufficientBufferForBinds);
@@ -665,13 +708,19 @@ bool njsVariable_initForQuery(njsVariable *vars, uint32_t numVars,
                         vars[i].varTypeNum == DPI_ORACLE_TYPE_VARCHAR)
                     vars[i].maxSize *= 2;
                 break;
+            case DPI_ORACLE_TYPE_TIMESTAMP_TZ:
+                if (vars[i].varTypeNum != DPI_ORACLE_TYPE_VARCHAR)
+                {
+                    vars[i].varTypeNum = DPI_ORACLE_TYPE_TIMESTAMP_TZ;
+                    vars[i].nativeTypeNum = DPI_NATIVE_TYPE_TIMESTAMP;
+                }
+                break;
             case DPI_ORACLE_TYPE_DATE:
             case DPI_ORACLE_TYPE_TIMESTAMP:
-            case DPI_ORACLE_TYPE_TIMESTAMP_TZ:
             case DPI_ORACLE_TYPE_TIMESTAMP_LTZ:
                 if (vars[i].varTypeNum != DPI_ORACLE_TYPE_VARCHAR) {
                     vars[i].varTypeNum = DPI_ORACLE_TYPE_TIMESTAMP_LTZ;
-                    vars[i].nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
+                    vars[i].nativeTypeNum = DPI_NATIVE_TYPE_TIMESTAMP;
                 }
                 break;
             case DPI_ORACLE_TYPE_CLOB:
@@ -696,6 +745,9 @@ bool njsVariable_initForQuery(njsVariable *vars, uint32_t numVars,
             // the remaining types are valid but no special processing needs to
             // be done
             case DPI_ORACLE_TYPE_NUMBER:
+                // FIX który zmienia domyślny tryb pobirania NUMBER jako number w string z formatowaniem TM
+                vars[i].nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
+                vars[i].maxSize = 40;
             case DPI_ORACLE_TYPE_NATIVE_INT:
             case DPI_ORACLE_TYPE_NATIVE_FLOAT:
             case DPI_ORACLE_TYPE_NATIVE_DOUBLE:
