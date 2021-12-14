@@ -696,6 +696,10 @@ bool njsVariable_initForQuery(njsVariable *vars, uint32_t numVars,
             // the remaining types are valid but no special processing needs to
             // be done
             case DPI_ORACLE_TYPE_NUMBER:
+                if (vars[i].isISO) {
+                  vars[i].nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
+                  vars[i].maxSize = 40;
+                }
             case DPI_ORACLE_TYPE_NATIVE_INT:
             case DPI_ORACLE_TYPE_NATIVE_FLOAT:
             case DPI_ORACLE_TYPE_NATIVE_DOUBLE:
@@ -766,6 +770,9 @@ bool njsVariable_performMapping(njsVariable *var, dpiQueryInfo *queryInfo,
             var->varTypeNum = DPI_ORACLE_TYPE_RAW;
         } else if (baton->fetchInfo[i].type == NJS_DATATYPE_DEFAULT) {
             var->varTypeNum = queryInfo->typeInfo.oracleTypeNum;
+        } else if (baton->fetchInfo[i].type == NJS_DATATYPE_ISO_STRING) {
+            var->varTypeNum = queryInfo->typeInfo.oracleTypeNum;
+            var->isISO = true;
         }
         return true;
 

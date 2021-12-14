@@ -773,6 +773,7 @@ struct njsVariable {
     njsVariableBuffer *buffer;
     uint32_t numDmlReturningBuffers;
     njsVariableBuffer *dmlReturningBuffers;
+    bool isISO;
 };
 
 // data for keeping track of ODPI-C buffers and LOBs
