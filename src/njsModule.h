@@ -139,6 +139,7 @@
 #define NJS_DATATYPE_BOOLEAN            DPI_ORACLE_TYPE_BOOLEAN
 #define NJS_DATATYPE_OBJECT             DPI_ORACLE_TYPE_OBJECT
 #define NJS_DATATYPE_JSON               DPI_ORACLE_TYPE_JSON
+#define NJS_DATATYPE_ISO_STRING         1999
 
 // error messages used within the driver
 typedef enum {

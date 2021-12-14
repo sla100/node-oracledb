@@ -212,6 +212,7 @@ static njsConstant njsClassConstants[] = {
     { "NCLOB", NJS_DATATYPE_NCLOB },
     { "NUMBER", NJS_DATATYPE_NUM },
     { "STRING", NJS_DATATYPE_STR },
+    { "ISO_STRING", NJS_DATATYPE_ISO_STRING },
 
     // privileges
     { "SYSASM", DPI_MODE_AUTH_SYSASM },

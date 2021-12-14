@@ -471,6 +471,7 @@ bool njsBaton_getFetchInfoFromArg(njsBaton *baton, napi_env env,
             return njsBaton_setError(baton, errNoTypeForConversion);
         if (tempFetchInfo[i].type != NJS_DATATYPE_DEFAULT &&
                     tempFetchInfo[i].type != NJS_DATATYPE_STR &&
+                    tempFetchInfo[i].type != NJS_DATATYPE_ISO_STRING &&
                     tempFetchInfo[i].type != NJS_DATATYPE_BUFFER)
             return njsBaton_setError(baton, errInvalidTypeForConversion);
 

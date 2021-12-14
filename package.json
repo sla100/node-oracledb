@@ -39,7 +39,8 @@
     "test": "mocha --config test/opts/.mocharc.yaml",
     "posttest": "node test/opts/version.js",
     "buildbinary": "node package/buildbinary.js",
-    "buildpackage": "node package/buildpackage.js"
+    "buildpackage": "node package/buildpackage.js",
+    "so": "node-gyp rebuild && node ./so.mjs"
   },
   "engines": {
     "node": ">=10.16"
