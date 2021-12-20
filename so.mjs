@@ -31,11 +31,13 @@ const numRes = await conn.execute(`SELECT
     38.73 AS DEFAUT,
   1038.73 AS AS_STRING,
   1038.73 AS AS_ISO,
-  TO_CHAR( 1038.73, 'FM999G999G999D999' ) AS AS_CHAR
+  TO_CHAR( 1038.73, 'FM999G999G999D999' ) AS AS_CHAR,
+  DATE '2021-12-31' AS AS_ISO_DATE
   FROM DUAL`, {}, {
     fetchInfo: {
       AS_STRING: { type: oracledb.STRING },
       AS_ISO: { type: oracledb.ISO_STRING },
+      AS_ISO_DATE: { type: oracledb.ISO_STRING },
     },
     outFormat: oracledb.OUT_FORMAT_OBJECT,
   }
@@ -46,8 +48,9 @@ deepStrictEqual(
   { 
     DEFAUT: 38.730000000000004, 
     AS_STRING: '1038,73', 
-    AS_CHAR: '1 038,73',
     AS_ISO: '1038.73',
+    AS_CHAR: '1 038,73',
+    AS_ISO_DATE: '2021-12-31T00:00:00'
   }
 );
 

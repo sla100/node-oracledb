@@ -587,6 +587,49 @@ bool njsVariable_getScalarValue(njsVariable *var, njsConnection *conn,
                     DPI_JSON_OPT_DATE_AS_DOUBLE, &topNode) < 0)
                 return njsBaton_setErrorDPI(baton);
             return njsVariable_getJsonNodeValue(baton, topNode, env, value);
+
+        case DPI_NATIVE_TYPE_TIMESTAMP:
+            char *dateString;
+            
+            if (var->dbTypeNum == DPI_ORACLE_TYPE_DATE)
+            {
+                dateString = malloc(19);
+                sprintf(dateString, "%04hu-%02hu-%02huT%02hu:%02hu:%02hu",
+                        data->value.asTimestamp.year,
+                        data->value.asTimestamp.month,
+                        data->value.asTimestamp.day,
+                        data->value.asTimestamp.hour,
+                        data->value.asTimestamp.minute,
+                        data->value.asTimestamp.second);
+            }
+            else if (var->dbTypeNum == DPI_ORACLE_TYPE_TIMESTAMP)
+            {
+                dateString = malloc(29);
+                sprintf(dateString, "%04hu-%02hu-%02huT%02hu:%02hu:%02hu.%u",
+                                                            data->value.asTimestamp.year,
+                                                            data->value.asTimestamp.month,
+                                                            data->value.asTimestamp.day,
+                                                            data->value.asTimestamp.hour,
+                                                            data->value.asTimestamp.minute,
+                                                            data->value.asTimestamp.second,
+                                                            data->value.asTimestamp.fsecond);
+            }else{
+                dateString = malloc(100);
+                sprintf(dateString, "%04hu-%02hu-%02huT%02hu:%02hu:%02hu.%u-%02hu:%02hu",
+                        data->value.asTimestamp.year,
+                        data->value.asTimestamp.month,
+                        data->value.asTimestamp.day,
+                        data->value.asTimestamp.hour,
+                        data->value.asTimestamp.minute,
+                        data->value.asTimestamp.second,
+                        data->value.asTimestamp.fsecond,
+                        data->value.asTimestamp.tzHourOffset,
+                        data->value.asTimestamp.tzMinuteOffset);
+            }
+            NJS_CHECK_NAPI(env, napi_create_string_utf8(env, dateString, strlen(dateString), value));
+            free(dateString);
+            break;
+
         default:
             break;
     }
@@ -671,7 +714,11 @@ bool njsVariable_initForQuery(njsVariable *vars, uint32_t numVars,
             case DPI_ORACLE_TYPE_TIMESTAMP_LTZ:
                 if (vars[i].varTypeNum != DPI_ORACLE_TYPE_VARCHAR) {
                     vars[i].varTypeNum = DPI_ORACLE_TYPE_TIMESTAMP_LTZ;
-                    vars[i].nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
+                    if (vars[i].isISO) {
+                        vars[i].nativeTypeNum = DPI_NATIVE_TYPE_TIMESTAMP;
+                    } else {
+                        vars[i].nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
+                    }
                 }
                 break;
             case DPI_ORACLE_TYPE_CLOB:
