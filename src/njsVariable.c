@@ -1,4 +1,4 @@
-// Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
+// Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
 
 //-----------------------------------------------------------------------------
 //
@@ -105,6 +105,9 @@ bool njsVariable_createBuffer(njsVariable *var, njsConnection *conn,
             break;
         case DPI_ORACLE_TYPE_JSON:
             var->nativeTypeNum = DPI_NATIVE_TYPE_JSON;
+            break;
+        case DPI_ORACLE_TYPE_NATIVE_INT:
+            var->nativeTypeNum = DPI_NATIVE_TYPE_INT64;
             break;
         default:
             return njsBaton_setError(baton, errInvalidBindDataType, 2);
@@ -1081,7 +1084,9 @@ static bool njsVariable_setFromString(njsVariable *var, uint32_t pos,
             &bufferLength))
 
     // check size, if applicable
-    if (checkSize && bufferLength > var->maxSize)
+    if (checkSize && var->varTypeNum != DPI_ORACLE_TYPE_CLOB &&
+            var->varTypeNum != DPI_ORACLE_TYPE_NCLOB &&
+            bufferLength > var->maxSize)
         return njsBaton_setError(baton, errMaxSizeTooSmall, var->maxSize,
                 bufferLength, pos);
 
@@ -1192,12 +1197,15 @@ bool njsVariable_setScalarValue(njsVariable *var, uint32_t pos, napi_env env,
     // handle binding numbers
     if (valueType == napi_number) {
         if (var->varTypeNum != DPI_ORACLE_TYPE_NUMBER &&
+                var->varTypeNum != DPI_ORACLE_TYPE_NATIVE_INT &&
                 var->varTypeNum != DPI_ORACLE_TYPE_NATIVE_FLOAT &&
                 var->varTypeNum != DPI_ORACLE_TYPE_NATIVE_DOUBLE)
             return njsVariable_setInvalidBind(var, pos, baton);
         NJS_CHECK_NAPI(env, napi_get_value_double(env, value, &tempDouble))
         if (var->varTypeNum == DPI_ORACLE_TYPE_NATIVE_FLOAT) {
             data->value.asFloat = (float) tempDouble;
+        } else if (var->varTypeNum == DPI_ORACLE_TYPE_NATIVE_INT) {
+            data->value.asInt64 = (int64_t) tempDouble;
         } else {
             data->value.asDouble = tempDouble;
         }
@@ -1239,7 +1247,8 @@ bool njsVariable_setScalarValue(njsVariable *var, uint32_t pos, napi_env env,
                 return njsVariable_setInvalidBind(var, pos, baton);
             NJS_CHECK_NAPI(env, napi_get_buffer_info(env, value, &buffer,
                     &bufferLength))
-            if (checkSize && bufferLength > var->maxSize)
+            if (checkSize && var->varTypeNum == DPI_ORACLE_TYPE_RAW &&
+                    bufferLength > var->maxSize)
                 return njsBaton_setError(baton, errMaxSizeTooSmall,
                         var->maxSize, bufferLength, pos);
             if (dpiVar_setFromBytes(var->dpiVarHandle, pos, buffer,
