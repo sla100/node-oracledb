@@ -23,7 +23,7 @@
  *   162. namedBindParameters.js
  *
  * DESCRIPTION
- *   Test parsing a statement and returns information about it.
+ *   Test named bind parameters
  *
  *****************************************************************************/
 'use strict';
@@ -42,9 +42,42 @@ describe('162.namedBindParameters.js', () => {
 
   after(async ()=> await conn.close());
 
+  describe('Ambiguous parameter name', ()=>{
+
+    it('Last arguments wins (1)', async ()=>{
+
+      const res1 = await conn.execute('SELECT :name FROM DUAL', {
+        name: 'first',
+        NAME: 'second',
+        '"NAME"': 'last',
+      });
+      deepEqual(res1.rows, [['last']]);
+    });
+
+    it('Last arguments wins (2)', async ()=>{
+
+      const res2 = await conn.execute('SELECT :name FROM DUAL', {
+        NAME: 'first',
+        '"NAME"': 'second',
+        name: 'last',
+      });
+      deepEqual(res2.rows, [['last']]);
+
+    });
+
+  });
+
+  describe('Non-ascii name', () => {
+    it('cannot be unquoted', ()=> conn.getStatementInfo('SELECT null as 🐘 from DUAL').should.be.rejectedWith(/^ORA-00911: /)); // invalid character
+    it('but work quoted', async ()=> {
+      const {metaData} = await conn.getStatementInfo('SELECT null as "🐘" from DUAL');
+      deepEqual(metaData[0].name, '🐘');
+    });
+  });
+
+  /*
   describe('Named parameters which need double quotes', () => {
 
-    it('Non-ascii name must be quoted', ()=> conn.getStatementInfo('SELECT 🐘 from DUAL').should.be.rejectedWith(/^ORA-00911: /)); // invalid character
 
     const sql = 'SELECT :"Name !", :"🐘" FROM DUAL';
 
@@ -74,7 +107,7 @@ describe('162.namedBindParameters.js', () => {
 
   describe('Named parameters which dont need double quotes', () => {
   });
-
+*/
   /*
   testCase({
     namedBindParameters: ['Unnecessary_Quotes_0$#', 'unnecessary_quotes_0$#', 'UNNECESSARY_QUOTES_0$#', '"UNNECESSARY_QUOTES_0$#"'],
@@ -91,22 +124,5 @@ describe('162.namedBindParameters.js', () => {
     statementInfoName: '( ͡° ͜ʖ ͡°)',
   });
 */
-  it('Last arguments wins', async ()=>{
-
-    const res1 = await conn.execute('SELECT :name FROM DUAL', {
-      name: 1,
-      NAME: 2,
-      '"NAME"': 3,
-    });
-    deepEqual(res1.rows, [[3]]);
-
-    const res2 = await conn.execute('SELECT :name FROM DUAL', {
-      NAME: 2,
-      '"NAME"': 3,
-      name: 1,
-    });
-    deepEqual(res2.rows, [[1]]);
-
-  });
 
 });
