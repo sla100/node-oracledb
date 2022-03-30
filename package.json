@@ -29,6 +29,9 @@
     "type": "git",
     "url": "git://github.com/oracle/node-oracledb.git"
   },
+  "exports": {
+    ".": "./index.js"
+  },
   "devDependencies": {
     "mocha": "8.3.2",
     "should": "13.2.3",
