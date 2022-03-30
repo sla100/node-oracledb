@@ -1,8 +1,8 @@
 import { strictEqual, deepStrictEqual } from 'node:assert';
 import oracledb from './index.js';
 
-strictEqual(process.versions.node, '16.13.1' );
-strictEqual(oracledb.versionString, '5.3.0' );
+strictEqual(process.versions.node, '16.14.2' );
+strictEqual(oracledb.versionString, '5.4.0-dev' );
 strictEqual(oracledb.oracleClientVersionString, '21.3.0.0.0');
 
 // fetch (javascript) type
@@ -25,7 +25,8 @@ const conn = await oracledb.getConnection({
 
 strictEqual(conn.oracleServerVersionString, '21.3.0.0.0');
 
-await conn.execute("ALTER SESSION SET NLS_NUMERIC_CHARACTERS = ', '"); // group separator work only in to_char with 'G' char
+// await conn.execute("ALTER SESSION SET NLS_NUMERIC_CHARACTERS = ', '"); // group separator work only in to_char with 'G' char
+await conn.execute("ALTER SESSION SET NLS_TERRITORY = 'SPAIN'" );
 
 const numRes = await conn.execute(`SELECT 
     38.73 AS DEFAUT,
