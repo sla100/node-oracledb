@@ -1,6 +1,6 @@
 # node-oracledb 5.4.0-dev Documentation for the Oracle Database Node.js Add-on
 
-*Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.*
+*Copyright (c) 2015, 2022, Oracle and/or its affiliates.*
 
 You may not use the identified files except in compliance with the Apache
 License, Version 2.0 (the "License.")
@@ -14,6 +14,11 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 See the License for the specific language governing permissions and
 limitations under the License.
+
+See
+[LICENSE.txt](https://github.com/oracle/node-oracledb/blob/main/LICENSE.txt)
+and
+[THIRD_PARTY_LICENSES.txt](https://github.com/oracle/node-oracledb/blob/main/THIRD_PARTY_LICENSES.txt).
 
 ##
 ## ===> *** Note: Go to [https://oracle.github.io/node-oracledb/doc/api.html](https://oracle.github.io/node-oracledb/doc/api.html) for production documentation ***
@@ -39,6 +44,7 @@ For installation information, see the [Node-oracledb Installation Instructions][
         - 2.1.1 [`errorNum`](#properrerrornum)
         - 2.1.2 [`message`](#properrmessage)
         - 2.1.3 [`offset`](#properroffset)
+        - 2.1.4 [`stack`](#properrstack)
 3. [Oracledb Class](#oracledbclass)
     - 3.1 [Oracledb Constants](#oracledbconstants)
         - 3.1.1 [Query `outFormat` Constants](#oracledbconstantsoutformat)
@@ -812,9 +818,23 @@ same is true for invalid operations on read-only or write-only
 properties.  If an unrecognized property name is used, it will be
 ignored.
 
+An example of catching an error is:
+
+```javascript
+async function run(connection) {
+  try {
+    const sql = `SELECT * FROM DOESNOTEXIST`;
+    result = await connection.execute(sql);
+    return result;
+  } catch (err) {
+    console.error(err);
+  }
+}
+```
+
 ### <a name="properror"></a> 2.1 Error Properties
 
-The *Error* object contains `errorNum`, `message` and `offset` properties.
+The *Error* object contains `errorNum`, `message`, `offset` and `stack` properties.
 
 #### <a name="properrerrornum"></a> 2.1.1 `errorNum`
 
@@ -870,6 +890,21 @@ corresponding to the `executeMany()` [binds parameter](#executemanybinds) array,
 indicating which record could not be processed. See [Handling Data
 Errors](#handlingbatcherrors).  In node-oracledb 4.2, the maximum `offset` value
 was changed from (2^16)-1 to (2^32)-1.
+
+#### <a name="properrstack"></a> 2.1.4 `stack`
+
+```
+String stack
+```
+
+When using Promises or Async/Await, the *Error* object includes a stack trace,
+for example:
+
+```
+Error: ORA-00942: table or view does not exist
+    at async Object.myDoQuery (/Users/cjones/db.js:5:20)
+    at async run (/Users/cjones/test.js:51:14)}
+```
 
 ## <a name="oracledbclass"></a> 3. Oracledb Class
 
@@ -4605,7 +4640,7 @@ since network or database failure may occur in the interval between
 `ping()` and `execute()` calls.
 
 Pinging requires a [round-trip](#roundtrips) to the database so unnecessary
-ping calls should be avoided.
+`ping()` calls should be avoided.
 
 If `ping()` returns an error, the application should close the
 connection.
@@ -15477,7 +15512,7 @@ The returned bind values are:
 ```
 
 The variant of `executeMany()` that accepts a number of iterations is
-useful when there no bind values, or only OUT bind values.  This
+useful when there are no bind values, or only OUT bind values.  This
 example calls a PL/SQL block eight times:
 
 ```javascript

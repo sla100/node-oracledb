@@ -1,6 +1,6 @@
 # Test node-oracledb
 
-*Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.*
+*Copyright (c) 2015, 2022, Oracle and/or its affiliates.*
 
 You may not use the identified files except in compliance with the Apache
 License, Version 2.0 (the "License.")
@@ -14,10 +14,6 @@ WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 See the License for the specific language governing permissions and
 limitations under the License.
-
-The node-oracledb test suite uses 'mocha', 'should' and 'async'.  See
-[LICENSE](https://github.com/oracle/node-oracledb/blob/main/LICENSE.md)
-for relevant licenses.
 
 ##  <a name="contents"></a> Contents
 

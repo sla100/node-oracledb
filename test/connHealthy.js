@@ -1,4 +1,4 @@
-/* Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved. */
+/* Copyright (c) 2022, Oracle and/or its affiliates. */
 
 /******************************************************************************
  *
@@ -14,9 +14,6 @@
  *
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- * The node-oracledb test suite uses 'mocha'.
- * See LICENSE.md for relevant licenses.
  *
  * NAME
  *   261. connHealthy.js
@@ -47,6 +44,28 @@ describe('261. connHealthy.js', function() {
       const isHealthy = conn.isHealthy();
       assert.strictEqual(isHealthy, false);
     });
+
+    it('261.1.3 connection health on closed connection from a pool', async function() {
+      const pool = await oracledb.createPool(
+        {
+          user              : dbconfig.user,
+          password          : dbconfig.password,
+          connectString     : dbconfig.connectString,
+          poolMin           : 1,
+          poolMax           : 5,
+          poolIncrement     : 1,
+          poolTimeout       : 28,
+          stmtCacheSize     : 23
+        });
+      assert.strictEqual(pool.connectionsInUse, 0);
+      const conn = await pool.getConnection();
+      var isHealthy = conn.isHealthy();
+      assert.strictEqual(isHealthy, true);
+      await conn.close();
+      isHealthy = conn.isHealthy();
+      assert.strictEqual(isHealthy, false);
+    });
+
 
   });
 
