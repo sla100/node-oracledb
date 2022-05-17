@@ -587,11 +587,29 @@ bool njsBaton_getShardingKeyColumnsFromArg(njsBaton *baton, napi_env env,
         if (valueType == napi_number) {
             shards[i].nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
             shards[i].oracleTypeNum = DPI_ORACLE_TYPE_NUMBER;
-            NJS_CHECK_NAPI(env, napi_get_value_double(env, element,
-                    &shards[i].value.asDouble));
+            NJS_CHECK_NAPI(env, napi_get_value_double(env, element, &shards[i].value.asDouble));
             continue;
         }
+/*
+        // handle bigint
+        if (valueType == napi_bigint) {
+            shards[i].nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
+            shards[i].oracleTypeNum = DPI_ORACLE_TYPE_NUMBER;
+            // NJS_CHECK_NAPI(env, napi_get_value_double(env, element, &shards[i].value.asDouble));
 
+            napi_value stringValue;
+            if ( napi_coerce_to_string( env, value, &stringValue) != napi_ok) {
+              return njsUtils_genericThrowError(env);
+            }
+
+            if (!njsUtils_copyStringFromJS(env, element, &shards[i].value.asBytes.ptr, &numBytes)) {
+                return false;
+            }
+            shards[i].value.asBytes.length = (uint32_t) numBytes;
+
+            continue;
+        }
+*/
         // handle objects
         if (valueType == napi_object) {
 

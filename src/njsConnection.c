@@ -2553,6 +2553,11 @@ static bool njsConnection_scanExecuteBindUnit(njsBaton *baton,
     args[1] = bindUnit;
     okBindUnit = false;
 
+    // get and validate nativeType
+    if (!njsBaton_getUnsignedIntFromArg(baton, env, args, 1, "nativeType",
+            &var->nativeTypeNum, &found))
+        return false;
+
     // get and validate bind direction; if not specified, IN is assumed
     if (!njsBaton_getUnsignedIntFromArg(baton, env, args, 1, "dir",
             &var->bindDir, &found))

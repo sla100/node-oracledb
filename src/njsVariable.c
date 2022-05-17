@@ -63,54 +63,56 @@ bool njsVariable_createBuffer(njsVariable *var, njsConnection *conn,
                 "maxSize", 1);
 
     // determine native type to use
-    switch (var->varTypeNum) {
-        case DPI_ORACLE_TYPE_VARCHAR:
-        case DPI_ORACLE_TYPE_NVARCHAR:
-        case DPI_ORACLE_TYPE_CHAR:
-        case DPI_ORACLE_TYPE_NCHAR:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
-            break;
-        case DPI_ORACLE_TYPE_NATIVE_FLOAT:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_FLOAT;
-            break;
-        case DPI_ORACLE_TYPE_NATIVE_DOUBLE:
-        case DPI_ORACLE_TYPE_NUMBER:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
-            break;
-        case DPI_ORACLE_TYPE_DATE:
-        case DPI_ORACLE_TYPE_TIMESTAMP:
-        case DPI_ORACLE_TYPE_TIMESTAMP_LTZ:
-        case DPI_ORACLE_TYPE_TIMESTAMP_TZ:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
-            break;
-        case DPI_ORACLE_TYPE_STMT:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_STMT;
-            break;
-        case DPI_ORACLE_TYPE_RAW:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
-            break;
-        case DPI_ORACLE_TYPE_CLOB:
-        case DPI_ORACLE_TYPE_NCLOB:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_LOB;
-            break;
-        case DPI_ORACLE_TYPE_BLOB:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_LOB;
-            break;
-        case NJS_DATATYPE_BOOLEAN:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_BOOLEAN;
-            break;
-        case DPI_ORACLE_TYPE_OBJECT:
-            var->dbObjectAsPojo = baton->dbObjectAsPojo;
-            var->nativeTypeNum = DPI_NATIVE_TYPE_OBJECT;
-            break;
-        case DPI_ORACLE_TYPE_JSON:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_JSON;
-            break;
-        case DPI_ORACLE_TYPE_NATIVE_INT:
-            var->nativeTypeNum = DPI_NATIVE_TYPE_INT64;
-            break;
-        default:
-            return njsBaton_setError(baton, errInvalidBindDataType, 2);
+    if (var->nativeTypeNum == 0) {
+        switch (var->varTypeNum) {
+            case DPI_ORACLE_TYPE_VARCHAR:
+            case DPI_ORACLE_TYPE_NVARCHAR:
+            case DPI_ORACLE_TYPE_CHAR:
+            case DPI_ORACLE_TYPE_NCHAR:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
+                break;
+            case DPI_ORACLE_TYPE_NATIVE_FLOAT:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_FLOAT;
+                break;
+            case DPI_ORACLE_TYPE_NATIVE_DOUBLE:
+            case DPI_ORACLE_TYPE_NUMBER:
+                  var->nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
+                break;
+            case DPI_ORACLE_TYPE_DATE:
+            case DPI_ORACLE_TYPE_TIMESTAMP:
+            case DPI_ORACLE_TYPE_TIMESTAMP_LTZ:
+            case DPI_ORACLE_TYPE_TIMESTAMP_TZ:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_DOUBLE;
+                break;
+            case DPI_ORACLE_TYPE_STMT:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_STMT;
+                break;
+            case DPI_ORACLE_TYPE_RAW:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_BYTES;
+                break;
+            case DPI_ORACLE_TYPE_CLOB:
+            case DPI_ORACLE_TYPE_NCLOB:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_LOB;
+                break;
+            case DPI_ORACLE_TYPE_BLOB:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_LOB;
+                break;
+            case NJS_DATATYPE_BOOLEAN:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_BOOLEAN;
+                break;
+            case DPI_ORACLE_TYPE_OBJECT:
+                var->dbObjectAsPojo = baton->dbObjectAsPojo;
+                var->nativeTypeNum = DPI_NATIVE_TYPE_OBJECT;
+                break;
+            case DPI_ORACLE_TYPE_JSON:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_JSON;
+                break;
+            case DPI_ORACLE_TYPE_NATIVE_INT:
+                var->nativeTypeNum = DPI_NATIVE_TYPE_INT64;
+                break;
+            default:
+                return njsBaton_setError(baton, errInvalidBindDataType, 2);
+        }
     }
 
     // allocate buffer
@@ -1134,15 +1136,47 @@ bool njsVariable_setScalarValue(njsVariable *var, uint32_t pos, napi_env env,
 
     // handle binding strings
     if (valueType == napi_string) {
+        if (var->varTypeNum == DPI_ORACLE_TYPE_TIMESTAMP ||
+                var->varTypeNum == DPI_ORACLE_TYPE_TIMESTAMP_TZ ||
+                var->varTypeNum == DPI_ORACLE_TYPE_TIMESTAMP_LTZ ||
+                var->varTypeNum == DPI_ORACLE_TYPE_DATE) {
+          data->value.asTimestamp.year = 2022;
+          data->value.asTimestamp.month = 2;
+          data->value.asTimestamp.day = 24;
+
+          data->value.asTimestamp.hour = 1;
+          data->value.asTimestamp.minute = 55;
+          data->value.asTimestamp.second = 0;
+
+          data->value.asTimestamp.fsecond = 0; // nanoseconds
+
+          data->value.asTimestamp.tzHourOffset = 0;
+          data->value.asTimestamp.tzMinuteOffset = 0;
+
+          return true;
+        }
+
         if (var->varTypeNum != DPI_ORACLE_TYPE_VARCHAR &&
                 var->varTypeNum != DPI_ORACLE_TYPE_NVARCHAR &&
                 var->varTypeNum != DPI_ORACLE_TYPE_CHAR &&
                 var->varTypeNum != DPI_ORACLE_TYPE_NCHAR &&
+                (var->varTypeNum != DPI_ORACLE_TYPE_NUMBER || var->nativeTypeNum != DPI_NATIVE_TYPE_BYTES) &&
                 var->varTypeNum != DPI_ORACLE_TYPE_CLOB &&
                 var->varTypeNum != DPI_ORACLE_TYPE_NCLOB)
             return njsVariable_setInvalidBind(var, pos, baton);
         return njsVariable_setFromString(var, pos, env, value, checkSize,
                 baton);
+    }
+
+    // handle bindings bigint
+    if (valueType == napi_bigint && var->varTypeNum == DPI_ORACLE_TYPE_NUMBER && var->nativeTypeNum == DPI_NATIVE_TYPE_BYTES) {
+
+      napi_value stringValue;
+      if ( napi_coerce_to_string( env, value, &stringValue) != napi_ok) {
+        return njsUtils_genericThrowError(env);
+      }
+
+      return njsVariable_setFromString(var, pos, env, stringValue, checkSize, baton);
     }
 
     // handle binding numbers
