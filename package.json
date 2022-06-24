@@ -1,7 +1,7 @@
 {
   "name": "oracledb",
-  "version": "5.4.0-dev",
-  "description": "A Node.js module for Oracle Database access",
+  "version": "5.4.0",
+  "description": "A Node.js module for Oracle Database access from JavaScript and TypeScript",
   "license": "Apache-2.0",
   "homepage": "http://oracle.github.io/node-oracledb/",
   "keywords": [
@@ -40,6 +40,7 @@
   },
   "scripts": {
     "test": "mocha --config test/opts/.mocharc.yaml",
+    "testtoken": "mocha --config test/opts/.mocharctoken.yaml",
     "posttest": "node test/opts/version.js",
     "buildbinary": "node package/buildbinary.js",
     "buildpackage": "node package/buildpackage.js"

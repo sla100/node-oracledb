@@ -412,6 +412,12 @@ static bool njsOracleDb_commonProcessArgs(njsBaton *baton, napi_env env, napi_va
     if (!njsBaton_getBoolFromArg(baton, env, args, 0, "events", &baton->events,
             NULL))
         return false;
+    if (!njsBaton_getStringFromArg(baton, env, args, 0, "privateKey",
+            &baton->privateKey, &baton->privateKeyLength, NULL))
+        return false;
+    if (!njsBaton_getStringFromArg(baton, env, args, 0, "token",
+            &baton->token, &baton->tokenLength, NULL))
+        return false;
 
     return true;
 }
@@ -456,6 +462,7 @@ static bool njsOracleDb_createPoolAsync(njsBaton *baton)
 {
     dpiCommonCreateParams commonParams;
     dpiPoolCreateParams params;
+    dpiAccessToken accessToken;
 
     // setup pool creation parameters
     if (dpiContext_initPoolCreateParams(baton->oracleDb->context, &params) < 0)
@@ -473,9 +480,16 @@ static bool njsOracleDb_createPoolAsync(njsBaton *baton)
     params.plsqlFixupCallback = baton->plsqlFixupCallback;
     params.plsqlFixupCallbackLength =
             (uint32_t) baton->plsqlFixupCallbackLength;
-    if (params.externalAuth)
+    if (params.externalAuth && !baton->token && !baton->privateKey)
         params.homogeneous = 0;
     params.pingInterval = baton->poolPingInterval;
+
+    // call function for token based authentication
+    if (baton->accessTokenCallback) {
+        params.accessTokenCallback =
+               (dpiAccessTokenCallback) njsTokenCallback_eventHandler;
+        params.accessTokenCallbackContext = baton->accessTokenCallback;
+    }
 
     // setup common creation parameters
     if (!njsOracleDb_initCommonCreateParams(baton, &commonParams))
@@ -486,14 +500,22 @@ static bool njsOracleDb_createPoolAsync(njsBaton *baton)
         commonParams.sodaMetadataCache = 1;
     commonParams.stmtCacheSize = baton->stmtCacheSize;
 
+    // set token based auth parameters
+    if (baton->token && baton->privateKey) {
+        accessToken.token = baton->token;
+        accessToken.tokenLength = baton->tokenLength;
+        accessToken.privateKey = baton->privateKey;
+        accessToken.privateKeyLength = baton->privateKeyLength;
+        commonParams.accessToken = &accessToken;
+    }
+
     // create pool
     if (dpiPool_create(baton->oracleDb->context, baton->user,
             (uint32_t) baton->userLength, baton->password,
             (uint32_t) baton->passwordLength, baton->connectString,
             (uint32_t) baton->connectStringLength, &commonParams,
-            &params, &baton->dpiPoolHandle) < 0) {
+            &params, &baton->dpiPoolHandle) < 0)
         return njsBaton_setErrorDPI(baton);
-    }
 
     return true;
 }
@@ -517,6 +539,7 @@ static bool njsOracleDb_createPoolPostAsync(njsBaton *baton, napi_env env,
 static bool njsOracleDb_createPoolProcessArgs(njsBaton *baton, napi_env env,
         napi_value *args)
 {
+    napi_value callback;
     // initialize ODPI-C library, if necessary
     if (!njsOracleDb_initDPI(baton->oracleDb, env, NULL, baton))
         return false;
@@ -564,6 +587,15 @@ static bool njsOracleDb_createPoolProcessArgs(njsBaton *baton, napi_env env,
     if (!njsBaton_getBoolFromArg(baton, env, args, 0, "sodaMetaDataCache",
             &baton->sodaMetadataCache, NULL))
         return false;
+    if (!njsBaton_getValueFromArg(baton, env, args, 0, "accessTokenCallback",
+            napi_function, &callback, NULL))
+        return false;
+    if (callback) {
+        if (!njsTokenCallback_new(baton, env))
+            return false;
+        NJS_CHECK_NAPI(env, napi_create_reference(env, callback, 1,
+            &baton->accessTokenCallback->jsCallback))
+    }
 
     return true;
 }
@@ -650,6 +682,7 @@ static bool njsOracleDb_getConnectionAsync(njsBaton *baton)
 {
     dpiCommonCreateParams commonParams;
     dpiConnCreateParams params;
+    dpiAccessToken accessToken;
 
     if (dpiContext_initConnCreateParams(baton->oracleDb->context, &params) < 0)
         return njsBaton_setErrorDPI(baton);
@@ -673,13 +706,21 @@ static bool njsOracleDb_getConnectionAsync(njsBaton *baton)
     commonParams.editionLength = (uint32_t) baton->editionLength;
     commonParams.stmtCacheSize = baton->stmtCacheSize;
 
+    // set token based auth parameters
+    if (baton->token && baton->privateKey) {
+        accessToken.token = baton->token;
+        accessToken.tokenLength = baton->tokenLength;
+        accessToken.privateKey = baton->privateKey;
+        accessToken.privateKeyLength = baton->privateKeyLength;
+        commonParams.accessToken = &accessToken;
+    }
+
     if (dpiConn_create(baton->oracleDb->context, baton->user,
             (uint32_t) baton->userLength, baton->password,
             (uint32_t) baton->passwordLength, baton->connectString,
             (uint32_t) baton->connectStringLength, &commonParams, &params,
-            &baton->dpiConnHandle) < 0) {
+            &baton->dpiConnHandle) < 0)
         return njsBaton_setErrorDPI(baton);
-    }
 
     return true;
 }
